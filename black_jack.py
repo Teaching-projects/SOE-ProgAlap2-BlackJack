@@ -85,10 +85,10 @@ class Hand:
     >>> h.reset()
     >>> h.add_card(Card('♥', 'J', 10))
     >>> h.add_card(Card('♣', 'A', 11))
-    >>> h.get_score()
-    21
     >>> h.blackjack()
     True
+    >>> h.get_score()
+    21
     >>> h.add_card(Card('♦', '2', 2))
     >>> h.get_score()
     21
@@ -120,7 +120,7 @@ class Hand:
         Args:
             card_values (list): A kártyák értékei.
         """
-        if self._score > 21 and 11 in card_values: self._score -= 10
+        if self.bust() and 11 in card_values: self._score -= 10
 
     def _sum_score(self) -> None:
         """Összeadja a kézben lévő kártyák értékét, figyelembe véve az előnyösebb ász értéket."""
@@ -134,8 +134,8 @@ class Hand:
         Args:
             card (Card): Egy kártya, ami a kézbe kerül.
         """
-        self._sum_score()
         if self._score < 21: self._cards.append(card)
+        self._sum_score()
 
     def blackjack(self) -> bool:
         """Megnézi, hogy a kéz értéke 21-e.
@@ -148,7 +148,6 @@ class Hand:
 
     def bust(self) -> bool:
         """Ha a lapok értéke meghaladja a 21-et"""
-        self._sum_score()
         return self._score > 21
 
     def get_score(self) -> int:
@@ -157,7 +156,6 @@ class Hand:
         Returns: 
             int: A kézben lévő kártyák értékének az összegével tér vissza.
         """
-        self._sum_score()
         return self._score
 
 class Player:
