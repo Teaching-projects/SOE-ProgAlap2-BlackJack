@@ -36,7 +36,7 @@ class Deck:
         self._deck_count = deck_count
         self._deck_init()
 
-    def _deck_init(self):
+    def _deck_init(self) -> None:
         """Összekever annyi paklit amennyit megadtunk."""
         for i in range(self.deck_count): self._deck.extend(self._make_a_deck())
         self.shuffle()
@@ -60,7 +60,7 @@ class Deck:
         self._deck.pop(0)
         return card
 
-    def deal_card(self):
+    def deal_card(self) -> None:
         """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet,
         ha van még kártya, akkor onnan vesz el."""
         if len(self._deck) == 0: 
@@ -123,7 +123,7 @@ class Hand:
         if self._score > 21 and 11 in card_values: self._score -= 10
 
     def _sum_score(self) -> None:
-        """Összeadja a kézben lévő kártyák értékét"""
+        """Összeadja a kézben lévő kártyák értékét, figyelembe véve az előnyösebb ász értéket."""
         card_values = [card.get_value() for card in self._cards]
         self._score = sum(card_values)
         self._ace_value(card_values)
@@ -155,7 +155,7 @@ class Hand:
         """A kézben lévő érték.
 
         Returns: 
-            int: A kézben lévő kártyák értékének az összegével tér vissza az előnyösebb ász értékkel.
+            int: A kézben lévő kártyák értékének az összegével tér vissza.
         """
         self._sum_score()
         return self._score
@@ -166,14 +166,50 @@ class Player:
         self._bet = None
         self._hand = Hand()
 
+    def place_bet(self, bet:int) -> int:
+        """A játékos megadja a tétet.
+        
+        Returns:
+            int: A tét, amivel a játékos játszik."""
+        self._chips -= bet
+        return bet
+
+    def hit(self, card:Card): 
+        """A játékos tetszőleges számú lapot kérhet mindaddig, amíg a lapjainak összértéke meg nem haladja a 21-et."""
+        self._hand.add_card(card)
+
+    def stand(self): 
+        """A játékos ekkor nem kér több lapot, mert úgy ítéli meg, hogy megfelelő lapjai vannak a játék megnyerésére."""
+        pass
+
+    def double(self): 
+        """Ha a játékos úgy ítéli meg, hogy az első két lapja elég erős ahhoz,
+        hogy egy harmadik lappal megnyerje a játékot, akkor a Double bemondásával a tétet duplázza.
+        A játékos a Double bemondása után már csak egy lapot kap, további lapot nem kérhet."""
+        pass
+
+    def split(self):
+        """Ha a játékos első két lapja egy párt alkot (például 5–5 vagy Q–Q), akkor ezt kettéoszthatja,
+        ezzel két „kezet” hoz létre, valamint mindkettőre azonos tétet tehet meg, azaz a tét duplázódik.
+        Mindkét lapra külön leosztás szerint kérhet lapot."""
+        pass
+
 class Game:
-    def __init__(self, chips:int, deck_count:int=6) -> None:
+    def __init__(self, rounds:int, chips:int, min_bet:int, max_bet:int, deck_count:int) -> None:
         self._deck = Deck(deck_count)
         self._dealer_hand = Hand()
         self._dealer_score = 0
+        self._player = None
 
-    def setup(self):
-        pass
+    def check_game(self): pass
+
+    def setup(self) -> None:
+        self._player.hit(self._deck.deal_card())
+        self._dealer_hand(self._deck.deal_card())
+        self._player.hit(self._deck.deal_card())
+    
+    def round(self) -> None:
+        self.setup()
 
 if __name__ == '__main__':
     import doctest
