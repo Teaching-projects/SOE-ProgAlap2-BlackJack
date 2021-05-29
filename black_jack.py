@@ -1,30 +1,6 @@
 import json
 from random import shuffle
 
-class Card:
-    """
-    >>> c1 = Card('♥', '7', 7)
-    >>> c1.get_value()
-    7
-    >>> c2 = Card('♠', 'K', 10)
-    >>> c2.get_value()
-    10
-    """
-    def __init__(self, suit:str, name:str, value:int) -> None:
-        """Egy egyszerű francia kártya tulajdonságait definiáló osztály.
-
-        Args:
-            suit (str): A kártya színe.
-            name (str): A kártya neve.
-            value (int): A kártya értéke
-        """
-        self.suit = suit
-        self.name = name
-        self._value = value
-
-    def get_value(self):
-        return self._value
-
 class Deck: 
     def __init__(self, deck_count:int) -> None:
         """Egy francia kártya paklit definiáló osztály.
@@ -47,14 +23,14 @@ class Deck:
         with open('basic_data/cards.json') as f:
             data = json.load(f)
         for suit in data['suits']:
-            for name in data['values'].keys(): deck.append(Card(suit, name, data['values'][name]))
+            for name in data['values'].keys(): deck.append((suit, name, data['values'][name]))
         return deck
         
     def shuffle(self) -> None:
         """Megkeveri a paklit."""
         shuffle(self._deck)
 
-    def _get_a_card(self) -> Card:
+    def _get_a_card(self) -> tuple:
         """Kivesz egy kártyát a pakliból."""
         card = self._deck[0]
         self._deck.pop(0)
@@ -71,11 +47,11 @@ class Deck:
 class Hand:
     """
     >>> h = Hand()
-    >>> h.add_card(Card('♥', 'Q', 10))
-    >>> h.add_card(Card('♥', '4', 4))
+    >>> h.add_card(('♥', 'Q', 10))
+    >>> h.add_card(('♥', '4', 4))
     >>> h.get_score()
     14
-    >>> h.add_card(Card('♣', '2', 2))
+    >>> h.add_card(('♣', '2', 2))
     >>> h.get_score()
     16
     >>> h.blackjack()
@@ -83,26 +59,29 @@ class Hand:
     >>> h.bust()
     False
     >>> h.reset()
-    >>> h.add_card(Card('♥', 'J', 10))
-    >>> h.add_card(Card('♣', 'A', 11))
+    >>> h.add_card(('♥', 'J', 10))
+    >>> h.add_card(('♣', 'A', 11))
     >>> h.blackjack()
     True
     >>> h.get_score()
     21
-    >>> h.add_card(Card('♦', '2', 2))
+    >>> h.add_card(('♦', '2', 2))
     >>> h.get_score()
     21
     >>> h.reset()
-    >>> h.add_card(Card('♣', 'K', 10))
-    >>> h.add_card(Card('♦', '9', 9))
-    >>> h.add_card(Card('♦', 'A', 11))
+    >>> h.add_card(('♣', 'K', 10))
+    >>> h.add_card(('♦', '9', 9))
+    >>> h.add_card(('♦', 'A', 11))
     >>> h.get_score()
     20
-    >>> h.add_card(Card('♥', '3', 3))
+    >>> h.add_card(('♥', '3', 3))
     >>> h.get_score()
     23
     >>> h.bust()
     True
+    >>> h.add_card(('♥', '5', 5))
+    >>> h.get_score()
+    23
     """
     def __init__(self) -> None:
         """A kézben lévő kártyákat definiálja."""
@@ -124,11 +103,11 @@ class Hand:
 
     def _sum_score(self) -> None:
         """Összeadja a kézben lévő kártyák értékét, figyelembe véve az előnyösebb ász értéket."""
-        card_values = [card.get_value() for card in self._cards]
+        card_values = [card[2] for card in self._cards]
         self._score = sum(card_values)
         self._ace_value(card_values)
 
-    def add_card(self, card:Card) -> None:
+    def add_card(self, card:tuple) -> None:
         """Felvesz egy kártyát a kézbe, ha a kezében lévő érték kisebb, mint 21.
 
         Args:
@@ -162,19 +141,20 @@ class Player:
     def __init__(self, chips:int) -> None:
         self._chips = chips
         self._bet = None
-        self._hand = Hand()
+        self.hand = Hand()
 
     def place_bet(self, bet:int) -> int:
         """A játékos megadja a tétet.
         
         Returns:
-            int: A tét, amivel a játékos játszik."""
+            int: A tét, amivel a játékos játszik.
+        """
         self._chips -= bet
         return bet
 
-    def hit(self, card:Card): 
+    def hit(self, card:tuple): 
         """A játékos tetszőleges számú lapot kérhet mindaddig, amíg a lapjainak összértéke meg nem haladja a 21-et."""
-        self._hand.add_card(card)
+        pass
 
     def stand(self): 
         """A játékos ekkor nem kér több lapot, mert úgy ítéli meg, hogy megfelelő lapjai vannak a játék megnyerésére."""
@@ -183,13 +163,15 @@ class Player:
     def double(self): 
         """Ha a játékos úgy ítéli meg, hogy az első két lapja elég erős ahhoz,
         hogy egy harmadik lappal megnyerje a játékot, akkor a Double bemondásával a tétet duplázza.
-        A játékos a Double bemondása után már csak egy lapot kap, további lapot nem kérhet."""
+        A játékos a Double bemondása után már csak egy lapot kap, további lapot nem kérhet.
+        """
         pass
 
     def split(self):
         """Ha a játékos első két lapja egy párt alkot (például 5–5 vagy Q–Q), akkor ezt kettéoszthatja,
         ezzel két „kezet” hoz létre, valamint mindkettőre azonos tétet tehet meg, azaz a tét duplázódik.
-        Mindkét lapra külön leosztás szerint kérhet lapot."""
+        Mindkét lapra külön leosztás szerint kérhet lapot.
+        """
         pass
 
 class Game:
@@ -197,14 +179,26 @@ class Game:
         self._deck = Deck(deck_count)
         self._dealer_hand = Hand()
         self._dealer_score = 0
-        self._player = None
+        self._player = Player(1000)
+        self._status = {
+            'dealer_hand': None,
+            'player_hand': None
+        }
 
-    def check_game(self): pass
+    def check_game(self):
+        if self._dealer_hand.bust(): pass
+        if self._player.hand.bust(): pass
+        if self._dealer_hand.blackjack(): pass
+        if self._player.hand.blackjack(): pass
 
     def setup(self) -> None:
-        self._player.hit(self._deck.deal_card())
-        self._dealer_hand(self._deck.deal_card())
-        self._player.hit(self._deck.deal_card())
+        self._player.hand.add_card(self._deck.deal_card())
+        self._dealer_hand.add_card(self._deck.deal_card())
+        self._player.hand.add_card(self._deck.deal_card())
+        self._status = {
+            'dealer_hand': self._dealer_hand[0],
+            'player_hand': self._player.hand
+        }
     
     def round(self) -> None:
         self.setup()
