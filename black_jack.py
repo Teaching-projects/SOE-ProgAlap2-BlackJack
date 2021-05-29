@@ -10,15 +10,19 @@ class Deck:
         """
         self._deck = []
         self._deck_count = deck_count
-        self._deck_init()
+        self.deck_init()
 
-    def _deck_init(self) -> None:
+    def deck_init(self) -> None:
         """Összekever annyi paklit amennyit megadtunk."""
-        for i in range(self.deck_count): self._deck.extend(self._make_a_deck())
+        for _ in range(self._deck_count): self._deck.extend(self._make_a_deck())
         self.shuffle()
 
     def _make_a_deck(self) -> list:
-        """Egy 52 lapos paklit hoz létre."""
+        """Egy 52 lapos paklit hoz létre.
+        
+        Returns:
+            list: A pakliban lévő kártyák listája.
+        """
         deck = []
         with open('basic_data/cards.json') as f:
             data = json.load(f)
@@ -30,19 +34,20 @@ class Deck:
         """Megkeveri a paklit."""
         shuffle(self._deck)
 
-    def _get_a_card(self) -> tuple:
+    def get_a_card(self) -> tuple:
         """Kivesz egy kártyát a pakliból."""
         card = self._deck[0]
         self._deck.pop(0)
         return card
 
-    def deal_card(self) -> None:
-        """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet,
-        ha van még kártya, akkor onnan vesz el."""
-        if len(self._deck) == 0: 
-            self._deck_init()
-            self._get_a_card()
-        else: self._get_a_card()
+    def out_of_card(self) -> bool:
+        """Azt viszgálja, hogy elfogyott-e a lap a pakliból.
+        
+        Returns:
+            bool: Ha nincs már kártya a pakliban, akkor True-val és ha van még, akkor False-al tér vissza.
+        """
+        return len(self._deck) == 0
+    
 
 class Hand:
     """
@@ -91,6 +96,8 @@ class Hand:
         """Alaphelyzetbe állítja az osztályt"""
         self._cards = []
         self._score = 0
+
+    def get_cards(self): return self._cards
 
     def _ace_value(self, card_values:list) -> None: 
         """Az ász értéke lehet 1 vagy 11. akkor tekintendő az Ász értéke 1-nek,
@@ -180,11 +187,17 @@ class Game:
         self._dealer_hand = Hand()
         self._dealer_score = 0
         self._player = Player(1000)
-        self._status = {
-            'dealer_hand': None,
-            'player_hand': None
-        }
-
+        
+    def deal_card(self) -> None:
+        """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet,
+        ha van még kártya, akkor onnan vesz el
+        """
+        if self._deck.out_of_card(): 
+            self._deck.deck_init()
+            return self._deck.get_a_card()
+        else:
+            return self._deck.get_a_card()
+    
     def check_game(self):
         if self._dealer_hand.bust(): pass
         if self._player.hand.bust(): pass
@@ -192,16 +205,18 @@ class Game:
         if self._player.hand.blackjack(): pass
 
     def setup(self) -> None:
-        self._player.hand.add_card(self._deck.deal_card())
-        self._dealer_hand.add_card(self._deck.deal_card())
-        self._player.hand.add_card(self._deck.deal_card())
+        self._player.hand.add_card(self.deal_card())
+        self._dealer_hand.add_card(self.deal_card())
+        self._player.hand.add_card(self.deal_card())
         self._status = {
-            'dealer_hand': self._dealer_hand[0],
-            'player_hand': self._player.hand
+            'dealer_hand': self._dealer_hand.get_cards()[0],
+            'player_hand': self._player.hand.get_cards()
         }
     
     def round(self) -> None:
         self.setup()
+    
+    def main(self) -> None: pass
 
 if __name__ == '__main__':
     import doctest
