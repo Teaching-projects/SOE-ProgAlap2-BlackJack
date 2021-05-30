@@ -87,6 +87,24 @@ class Hand:
     >>> h.add_card(('♥', '5', 5))
     >>> h.get_score()
     23
+    >>> h.reset()
+    >>> h.add_card(('♥', 'A', 11))
+    >>> h.add_card(('♠', '4', 4))
+    >>> h.add_card(('♦', '2', 2))
+    >>> h.soft_hand()
+    True
+    >>> h.add_card(('♣', '5', 5))
+    >>> h.soft_hand()
+    False
+    >>> h.pair()
+    False
+    >>> h.get_score()
+    12
+    >>> h.reset()
+    >>> h.add_card(('♦', '7', 7))
+    >>> h.add_card(('♠', '7', 7))
+    >>> h.pair()
+    True
     """
     def __init__(self) -> None:
         """A kézben lévő kártyákat definiálja."""
@@ -96,23 +114,30 @@ class Hand:
         """Alaphelyzetbe állítja az osztályt"""
         self._cards = []
         self._score = 0
+        self._soft_hand = True
 
-    def get_cards(self): return self._cards
-
-    def _ace_value(self, card_values:list) -> None: 
-        """Az ász értéke lehet 1 vagy 11. akkor tekintendő az Ász értéke 1-nek,
-        ha a lapok összértéke az Ász 11-es értékével számolva meghaladná a 21-et.
+    def get_cards(self) -> list: 
+        """A kézben lévő lapokat adja vissza.
         
-        Args:
-            card_values (list): A kártyák értékei.
+        Returns:
+            list: A lapok listája.
         """
-        if self.bust() and 11 in card_values: self._score -= 10
+        return self._cards
+
+    def get_card_values(self):
+        """A kézben lévő lapok értékeit adja vissza.
+        
+        Returns:
+            list: A lapok értékeinek a listája.
+        """
+        return [card[2] for card in self._cards]
 
     def _sum_score(self) -> None:
         """Összeadja a kézben lévő kártyák értékét, figyelembe véve az előnyösebb ász értéket."""
-        card_values = [card[2] for card in self._cards]
-        self._score = sum(card_values)
-        self._ace_value(card_values)
+        self._score = sum(self.get_card_values())
+        if self.bust() and 11 in self.get_card_values(): 
+            self._score -= 10
+            self._soft_hand = False
 
     def add_card(self, card:tuple) -> None:
         """Felvesz egy kártyát a kézbe, ha a kezében lévő érték kisebb, mint 21.
@@ -133,9 +158,26 @@ class Hand:
         return self._score == 21 and len(self._cards) == 2
 
     def bust(self) -> bool:
-        """Ha a lapok értéke meghaladja a 21-et"""
+        """Ha a lapok értéke meghaladja a 21-et."""
         return self._score > 21
 
+    def pair(self) -> bool:
+        """Megnézi, hogy a játékos első két lapja párt alkot-e.
+        
+        Returns: 
+            bool: Ha az első két lap értéke megegyezik, akkor True-val, különben meg False-al tér vissza.
+        """
+        return len(set(self.get_card_values())) == 1 and len(self._cards) == 2
+
+    def soft_hand(self) -> bool:
+        """Az ász értéke lehet 1 vagy 11. akkor tekintendő az Ász értéke 1-nek,
+        ha a lapok összértéke az Ász 11-es értékével számolva meghaladná a 21-et.
+        
+        Returns: 
+            bool: Ha az ász kedvezőbb értéke 11, akkor True-val, különben meg False-al tér vissza.
+        """
+        return self._soft_hand
+    
     def get_score(self) -> int:
         """A kézben lévő érték.
 
@@ -143,7 +185,7 @@ class Hand:
             int: A kézben lévő kártyák értékének az összegével tér vissza.
         """
         return self._score
-
+    
 class Player:
     def __init__(self, chips:int) -> None:
         self._chips = chips
@@ -173,7 +215,7 @@ class Player:
         A játékos a Double bemondása után már csak egy lapot kap, további lapot nem kérhet.
         """
         pass
-
+    
     def split(self):
         """Ha a játékos első két lapja egy párt alkot (például 5–5 vagy Q–Q), akkor ezt kettéoszthatja,
         ezzel két „kezet” hoz létre, valamint mindkettőre azonos tétet tehet meg, azaz a tét duplázódik.
@@ -181,13 +223,20 @@ class Player:
         """
         pass
 
+class Dealer:
+    def __init__(self) -> None:
+        self.hand = Hand()
+
+    def get_move(self) -> str:
+        if self.hand.get_score() < 17: return 'h'
+        else: return 's'
+
 class Game:
     def __init__(self, rounds:int, chips:int, min_bet:int, max_bet:int, deck_count:int) -> None:
         self._deck = Deck(deck_count)
-        self._dealer_hand = Hand()
-        self._dealer_score = 0
         self._player = Player(1000)
-        
+        self._dealer = Dealer()
+
     def deal_card(self) -> None:
         """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet,
         ha van még kártya, akkor onnan vesz el
@@ -199,15 +248,16 @@ class Game:
             return self._deck.get_a_card()
     
     def check_game(self):
-        if self._dealer_hand.bust(): pass
+        if self._dealer.hand.bust(): pass
         if self._player.hand.bust(): pass
-        if self._dealer_hand.blackjack(): pass
+        if self._dealer.hand.blackjack(): pass
         if self._player.hand.blackjack(): pass
 
     def setup(self) -> None:
         self._player.hand.add_card(self.deal_card())
-        self._dealer_hand.add_card(self.deal_card())
+        self._dealer.hand.add_card(self.deal_card())
         self._player.hand.add_card(self.deal_card())
+        self._dealer.hand.add_card(self.deal_card())
         self._status = {
             'dealer_hand': self._dealer_hand.get_cards()[0],
             'player_hand': self._player.hand.get_cards()
