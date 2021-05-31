@@ -115,6 +115,7 @@ class Hand:
         self._cards = []
         self._score = 0
         self._soft_hand = True
+        self.win = False
 
     def get_cards(self) -> list: 
         """A kézben lévő lapokat adja vissza.
@@ -186,22 +187,36 @@ class Hand:
         """
         return self._score
     
+class Player_hand(Hand):
+    def __init__(self, bet:int=0) -> None:
+        super().__init__()
+        self.bet = bet
+    
+    def split(self):
+        self.split_hand = Player_hand(self.bet)
+
 class Player:
     def __init__(self, chips:int) -> None:
         self._chips = chips
-        self._bet = None
-        self.hand = Hand()
+        self.hands = [Player_hand()]
 
-    def place_bet(self, bet:int) -> int:
+    def place_bet(self) -> int:
         """A játékos megadja a tétet.
         
         Returns:
             int: A tét, amivel a játékos játszik.
         """
+        bet = self.get_bet()
         self._chips -= bet
-        return bet
+        self.hands[0].bet += bet
 
-    def hit(self, card:tuple): 
+    def win_bet(self):
+        for hand in self.hands:
+            if hand.win:
+                self._chips += round(hand.bet)
+                hand.bet = 0
+
+    def hit(self): 
         """A játékos tetszőleges számú lapot kérhet mindaddig, amíg a lapjainak összértéke meg nem haladja a 21-et."""
         pass
 
@@ -221,7 +236,8 @@ class Player:
         ezzel két „kezet” hoz létre, valamint mindkettőre azonos tétet tehet meg, azaz a tét duplázódik.
         Mindkét lapra külön leosztás szerint kérhet lapot.
         """
-        pass
+        self.hands.append(Player_hand(self.hand.bet))
+        self.hands.append(Player_hand(self.hand.bet))
 
 class Dealer:
     def __init__(self) -> None:
@@ -232,9 +248,9 @@ class Dealer:
         else: return 's'
 
 class Game:
-    def __init__(self, rounds:int, chips:int, min_bet:int, max_bet:int, deck_count:int) -> None:
+    def __init__(self, chips:int, min_bet:int, max_bet:int, deck_count:int) -> None:
         self._deck = Deck(deck_count)
-        self._player = Player(1000)
+        self._player = None
         self._dealer = Dealer()
 
     def deal_card(self) -> None:
@@ -247,27 +263,29 @@ class Game:
         else:
             return self._deck.get_a_card()
     
-    def check_game(self):
-        if self._dealer.hand.bust(): pass
-        if self._player.hand.bust(): pass
-        if self._dealer.hand.blackjack(): pass
-        if self._player.hand.blackjack(): pass
+    def check_hands(self):
+        pass
 
     def setup(self) -> None:
-        self._player.hand.add_card(self.deal_card())
+        self._player.place_bet()
+        self._player.hands[0].add_card(self.deal_card())
         self._dealer.hand.add_card(self.deal_card())
-        self._player.hand.add_card(self.deal_card())
+        self._player.hands[0].add_card(self.deal_card())
         self._dealer.hand.add_card(self.deal_card())
-        self._status = {
-            'dealer_hand': self._dealer_hand.get_cards()[0],
-            'player_hand': self._player.hand.get_cards()
-        }
+        if self._player.hands[0].blackjack(): 
+            self._player.hands[0].bet *= 2.5
+            self._player.hands[0].win = True
+            self._player.win_bet()
+        print(self._player.hands[0].bet)
     
     def round(self) -> None:
+        print(self._player._chips)
         self.setup()
+        print(self._player._chips)
     
     def main(self) -> None: pass
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+    
