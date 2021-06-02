@@ -63,7 +63,7 @@ class Hand:
     False
     >>> h.bust()
     False
-    >>> h.reset()
+    >>> h = Hand()
     >>> h.add_card(('♥', 'J', 10))
     >>> h.add_card(('♣', 'A', 11))
     >>> h.blackjack()
@@ -73,7 +73,7 @@ class Hand:
     >>> h.add_card(('♦', '2', 2))
     >>> h.get_score()
     21
-    >>> h.reset()
+    >>> h = Hand()
     >>> h.add_card(('♣', 'K', 10))
     >>> h.add_card(('♦', '9', 9))
     >>> h.add_card(('♦', 'A', 11))
@@ -87,35 +87,35 @@ class Hand:
     >>> h.add_card(('♥', '5', 5))
     >>> h.get_score()
     23
-    >>> h.reset()
+    >>> h = Hand()
     >>> h.add_card(('♥', 'A', 11))
     >>> h.add_card(('♠', '4', 4))
     >>> h.add_card(('♦', '2', 2))
-    >>> h.soft_hand()
+    >>> h.soft()
     True
     >>> h.add_card(('♣', '5', 5))
-    >>> h.soft_hand()
+    >>> h.soft()
     False
     >>> h.pair()
     False
     >>> h.get_score()
     12
-    >>> h.reset()
+    >>> h = Hand()
     >>> h.add_card(('♦', '7', 7))
     >>> h.add_card(('♠', '7', 7))
     >>> h.pair()
     True
+    >>> h = Hand()
+    >>> h.add_card(('♠', '6', 6))
+    >>> h.add_card(('♠', '10', 10))
     """
     def __init__(self) -> None:
         """A kézben lévő kártyákat definiálja."""
-        self.reset()
-    
-    def reset(self) -> None:
-        """Alaphelyzetbe állítja az osztályt"""
         self._cards = []
         self._score = 0
-        self._soft_hand = True
-        self.win = False
+        self.stand = False
+        self.won = False
+        self.lost = False
 
     def get_cards(self) -> list: 
         """A kézben lévő lapokat adja vissza.
@@ -136,9 +136,11 @@ class Hand:
     def _sum_score(self) -> None:
         """Összeadja a kézben lévő kártyák értékét, figyelembe véve az előnyösebb ász értéket."""
         self._score = sum(self.get_card_values())
-        if self.bust() and 11 in self.get_card_values(): 
-            self._score -= 10
-            self._soft_hand = False
+        if self.in_ace():
+            self._soft = True
+            if self.bust(): 
+                self._score -= 10
+                self._soft = False
 
     def add_card(self, card:tuple) -> None:
         """Felvesz egy kártyát a kézbe, ha a kezében lévő érték kisebb, mint 21.
@@ -149,6 +151,12 @@ class Hand:
         if self._score < 21: self._cards.append(card)
         self._sum_score()
 
+    def pop_card(self):
+        self._cards.pop()
+
+    def normal21(self):
+        return self._score == 21
+
     def blackjack(self) -> bool:
         """Megnézi, hogy a kéz értéke 21-e.
 
@@ -156,12 +164,15 @@ class Hand:
             bool: Ha 21 a kézben lévő első két kártya értéke, akkor Blackjack van és True-val tér vissza,
             különben meg False értékkel.
         """
-        return self._score == 21 and len(self._cards) == 2
+        return self.normal21() and len(self._cards) == 2
 
     def bust(self) -> bool:
         """Ha a lapok értéke meghaladja a 21-et."""
         return self._score > 21
 
+    def in_game(self):
+        return not(self.stand or self.lost or self.won)
+    
     def pair(self) -> bool:
         """Megnézi, hogy a játékos első két lapja párt alkot-e.
         
@@ -170,14 +181,17 @@ class Hand:
         """
         return len(set(self.get_card_values())) == 1 and len(self._cards) == 2
 
-    def soft_hand(self) -> bool:
+    def in_ace(self):
+        return 11 in self.get_card_values()
+
+    def soft(self) -> bool:
         """Az ász értéke lehet 1 vagy 11. akkor tekintendő az Ász értéke 1-nek,
         ha a lapok összértéke az Ász 11-es értékével számolva meghaladná a 21-et.
         
         Returns: 
-            bool: Ha az ász kedvezőbb értéke 11, akkor True-val, különben meg False-al tér vissza.
+            bool: Ha az ász kedvezőbb értéke 1, akkor True-val, különben meg False-al tér vissza.
         """
-        return self._soft_hand
+        return self._soft
     
     def get_score(self) -> int:
         """A kézben lévő érték.
@@ -190,68 +204,116 @@ class Hand:
 class Player_hand(Hand):
     def __init__(self, bet:int=0) -> None:
         super().__init__()
-        self.bet = bet
-    
-    def split(self):
-        self.split_hand = Player_hand(self.bet)
+        self._bet = bet
 
+    def add_bet(self, size): 
+        self._bet += size
+
+    def multiplication(self, multiplier):
+        self._bet *= multiplier
+
+    def get_bet(self):
+        size = self._bet
+        self._bet = 0
+        return size
+    
 class Player:
+    """
+    >>> p = Player(1000)
+    >>> p.make_hand()
+    >>> p.hands[0].bet = 20
+    >>> p.hands[0].add_card(('♣', '4', 4))
+    >>> p.hands[0].add_card(('♠', '4', 4))
+    >>> len(p.hands)
+    1
+    >>> p.hands[0].get_cards()
+    [('♣', '4', 4), ('♠', '4', 4)]
+    >>> p.split(p.hands[0])
+    >>> len(p.hands)
+    2
+    >>> p.hands[0].get_cards()
+    [('♣', '4', 4)]
+    >>> p.hands[1].get_cards()
+    [('♠', '4', 4)]
+    """
     def __init__(self, chips:int) -> None:
         self._chips = chips
+
+    def make_hand(self):
         self.hands = [Player_hand()]
 
-    def place_bet(self) -> int:
+    def get_chips(self, size):
+        self._chips -= size
+
+    def add_chips(self, size):
+        self._chips += size
+
+    def place_bet(self, hand:Player_hand) -> int:
         """A játékos megadja a tétet.
         
         Returns:
             int: A tét, amivel a játékos játszik.
         """
         bet = self.get_bet()
-        self._chips -= bet
-        self.hands[0].bet += bet
+        self.get_chips(bet)
+        hand.add_bet(bet)
 
-    def win_bet(self):
-        for hand in self.hands:
-            if hand.win:
-                self._chips += round(hand.bet)
-                hand.bet = 0
-
-    def hit(self): 
-        """A játékos tetszőleges számú lapot kérhet mindaddig, amíg a lapjainak összértéke meg nem haladja a 21-et."""
-        pass
-
-    def stand(self): 
-        """A játékos ekkor nem kér több lapot, mert úgy ítéli meg, hogy megfelelő lapjai vannak a játék megnyerésére."""
-        pass
-
-    def double(self): 
+    def won_bet(self, hand:Player_hand) -> None:
+        self.add_chips(round(hand.get_bet()))
+    
+    def double(self, hand:Player_hand): 
         """Ha a játékos úgy ítéli meg, hogy az első két lapja elég erős ahhoz,
         hogy egy harmadik lappal megnyerje a játékot, akkor a Double bemondásával a tétet duplázza.
         A játékos a Double bemondása után már csak egy lapot kap, további lapot nem kérhet.
         """
-        pass
+        bet = hand.get_bet()
+        self.get_chips(bet)
+        bet *= 2
+        hand.add_bet(bet)
     
-    def split(self):
+    def split(self, hand:Hand):
         """Ha a játékos első két lapja egy párt alkot (például 5–5 vagy Q–Q), akkor ezt kettéoszthatja,
         ezzel két „kezet” hoz létre, valamint mindkettőre azonos tétet tehet meg, azaz a tét duplázódik.
         Mindkét lapra külön leosztás szerint kérhet lapot.
         """
-        self.hands.append(Player_hand(self.hand.bet))
-        self.hands.append(Player_hand(self.hand.bet))
+        card = hand.get_cards()[1]
+        hand.pop_card()
+        self.hands.append(Player_hand(hand.bet))
+        self.hands[-1].add_card(card)
 
 class Dealer:
+    """
+    >>> d = Dealer()
+    >>> d.stand()
+    False
+    >>> d.hand.add_card(('♠', '7', 7))
+    >>> d.hand.add_card(('♠', '4', 4))
+    >>> d.stand()
+    False
+    >>> d.hand.add_card(('♦', '9', 9))
+    >>> d.stand()
+    True
+    >>> d = Dealer()
+    >>> d.hand.add_card(('♠', 'K', 10))
+    >>> d.hand.add_card(('♦', '2', 2))
+    >>> d.stand()
+    False
+    >>> d.hand.add_card(('♣', 'J', 10))
+    >>> d.stand()
+    True
+    """
     def __init__(self) -> None:
         self.hand = Hand()
 
-    def get_move(self) -> str:
-        if self.hand.get_score() < 17: return 'h'
-        else: return 's'
-
+    def stand(self) -> str:
+        return (self.hand.get_score() > 16) or self.hand.bust()
+    
 class Game:
-    def __init__(self, chips:int, min_bet:int, max_bet:int, deck_count:int) -> None:
+    def __init__(self, min_bet:int, max_bet:int, deck_count:int) -> None:
         self._deck = Deck(deck_count)
-        self._player = None
-        self._dealer = Dealer()
+
+    def set_player(self, player:Player):
+        self._player = player
 
     def deal_card(self) -> None:
         """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet,
@@ -262,30 +324,95 @@ class Game:
             return self._deck.get_a_card()
         else:
             return self._deck.get_a_card()
-    
-    def check_hands(self):
-        pass
 
-    def setup(self) -> None:
-        self._player.place_bet()
-        self._player.hands[0].add_card(self.deal_card())
+    def check_hand(self, hand:Player_hand):
+        if hand.blackjack(): self.blackjack_won(hand)
+        elif hand.bust(): self.lost(hand)
+        elif hand.normal21(): self.normal_won(hand)
+
+    def move(self, hand:Player_hand, move) -> None:
+        if move == 'h': 
+            hand.add_card(self.deal_card())
+        elif move == 's': 
+            hand.stand = True
+        elif move == 'd': 
+            self._player.double(hand)
+            hand.add_card(self.deal_card())
+            hand.stand = True
+        elif move == 'sp': 
+            if hand.pair(): 
+                self._player.split(hand)
+                self._player.hands[-1].add_card(self.deal_card())
+                self._player.hands[-2].add_card(self.deal_card())
+            else: raise Exception('Wrong move')
+
+    def dealer_move(self):
+        while not self._dealer.stand():
+            self._dealer.hand.add_card(self.deal_card())
+
+    def setup(self, main_hand:Player_hand) -> None:
+        """A játékmenet kezdete. Először a játékosnak oszt lapot az osztó, majd magának és ezt megteszi mégegyszer.
+        Ezután 4 kimenetele lehet a játéknak:
+            - A játékosnak és az osztónak is blackjackje van, ilyenkor döntetlen van és a játékos visszakapja a tétet.
+            - Csak a játékosnak van blackjackje, ekkor a tét mellett annak másfélszeresét is megkapja a játékos. 
+            - Csak az osztónak van blackjackje, ekkor a játékos vesztett.
+            - Senkinek sincs blackjackje, ekkor folytatódik a játék 
+        """
+        self._game_over = False
+        self._dealer = Dealer()
+        self._player.place_bet(main_hand)
+        main_hand.add_card(self.deal_card())
         self._dealer.hand.add_card(self.deal_card())
-        self._player.hands[0].add_card(self.deal_card())
+        main_hand.add_card(self.deal_card())
         self._dealer.hand.add_card(self.deal_card())
-        if self._player.hands[0].blackjack(): 
-            self._player.hands[0].bet *= 2.5
-            self._player.hands[0].win = True
-            self._player.win_bet()
-        print(self._player.hands[0].bet)
-    
+        if main_hand.blackjack() and self._dealer.hand.blackjack(): 
+            self.draw(main_hand)
+            self.game_over()
+        elif main_hand.blackjack() and not self._dealer.hand.blackjack(): 
+            self.blackjack_won(main_hand)
+            self.game_over()
+        elif self._dealer.hand.blackjack(): 
+            self.lost(main_hand)
+            self.game_over()
+
+    def blackjack_won(self, hand:Player_hand):
+        hand.won = True
+        hand.stand = True
+        hand.multiplication(2.5)
+        
+    def normal_won(self, hand:Player_hand):
+        hand.won = True
+        hand.stand = True
+        hand.multiplication(2)
+
+    def draw(self, hand:Player_hand):
+        hand.stand = True
+        hand.multiplication(1)
+
+    def lost(self, hand:Player_hand):
+        hand.lost = True
+        hand.stand = True
+        hand.multiplication(0)
+
+    def game_over(self): 
+        self._game_over = True
+        for hand in self._player.hands:
+            self._player.won_bet(hand)
+
     def round(self) -> None:
-        print(self._player._chips)
-        self.setup()
-        print(self._player._chips)
+        self._dealer = Dealer()
+        self._player.make_hand()
+        self.setup(self._player.hands[0])
+        while not self._game_over:
+            for hand in self._player.hands:
+                if not hand.stand:
+                    self.move(hand, self._player.get_move(hand, self._dealer.hand.get_cards()[0]))  
+                    self.check_hand(hand)
+            if False not in [hand.stand for hand in self._player.hands]: self.game_over()
+            else:
+                self.dealer_move()
+                self.check_hand(self._dealer.hand)    
     
-    def main(self) -> None: pass
-
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-    
