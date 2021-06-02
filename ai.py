@@ -114,8 +114,8 @@ class Strategy:
         Returns:
             str: A döntés rövidítve (h=hit, s=stand, d=double down, sp=split).
         """
-        if player_hand.pair(): return self._search_move('pair_splitting', player_hand.get_card_values()[0], dealer_card[2])
-        elif player_hand.in_ace() and player_hand.soft(): return self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2])
+        if player_hand.is_pair(): return self._search_move('pair_splitting', player_hand.get_card_values()[0], dealer_card[2])
+        elif player_hand.is_in_ace() and player_hand.is_soft(): return self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2])
         else: return self._search_move('hard_hand', player_hand.get_score(), dealer_card[2])
 
 class AI(Player):
