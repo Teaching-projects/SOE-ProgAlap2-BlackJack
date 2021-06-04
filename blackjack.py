@@ -204,6 +204,14 @@ class Hand:
             int: A kézben lévő kártyák értékének az összegével tér vissza.
         """
         return self._score
+
+    def get_moves(self) -> list:
+        moves = []
+        if not self.stand: 
+            moves.extend(['s', 'h'])
+            if len(self._cards) == 2 and not self.is_split_hand: moves.append('d')
+            if self.is_pair() and not self.is_split_hand: moves.append('sp')
+        return moves
     
 class Player_hand(Hand):
     def __init__(self, bet:int=0) -> None:
@@ -372,25 +380,23 @@ class Game:
         elif hand.is_normal21(): self.normal_won(hand)
 
     def move(self, hand:Player_hand, move) -> None:
-        print(move)
-        if move == 'h': 
-            hand.add_card(self.deal_card())
-        elif move == 's': 
-            hand.stand = True
-        elif move == 'd':
-            if len(hand.get_cards()) == 2:
+        if self._valid_move(hand.get_moves(), move): raise Exception('Wrong move')
+        else:
+            if move == 'h': 
+                hand.add_card(self.deal_card())
+            elif move == 's': 
+                hand.stand = True
+            elif move == 'd':
                 self._player.double(hand)
                 hand.add_card(self.deal_card())
                 hand.stand = True
-            else: raise Exception('Wrong move')
-        elif move == 'sp': 
-            if hand.is_pair() and not hand.is_split_hand:
+            elif move == 'sp': 
                 self._player.split()
                 self._player.main_hand.add_card(self.deal_card())
                 self._player.split_hand.add_card(self.deal_card())
-            else: raise Exception('Wrong move')
 
-    def valid_move(self): pass
+    def _valid_move(self, moves, move):
+        return move not in moves
 
     def dealer_move(self):
         while not self._dealer.stand():

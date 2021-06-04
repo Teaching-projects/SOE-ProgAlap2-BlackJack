@@ -1,4 +1,5 @@
 from blackjack import Game, Player_hand, Player
+from random import randint, choice
 import json
 
 class Card_counter:
@@ -78,6 +79,14 @@ class Strategy:
     16
     >>> s.calculate_move(h,('♦', '4', 4))
     's'
+    >>> h = Player_hand()
+    >>> h.add_card(('♥', '4', 4))
+    >>> h.add_card(('♠', '4', 4))
+    >>> s.calculate_move(h,('♦', 'Q', 10))
+    'h'
+    >>> h.add_card(('♠', '9', 9))
+    >>> s.calculate_move(h,('♦', 'Q', 10))
+    's'
     """
     def __init__(self) -> None:
         """Betölti a kiválasztott stratégiát, majd eltárolja azt."""
@@ -102,7 +111,7 @@ class Strategy:
             if player == card: row = index
         for index, card in enumerate(strategy['dealer']):
             if dealer == card: column = index
-        return strategy['move'][row][column]
+        return strategy['move'][row][column]        
 
     def calculate_move(self, player_hand:Player_hand, dealer_card:tuple) -> str:
         """A stratégiának megfelelő döntést hozza meg a játékos keze alapján. Figyelembe véve azt, hogy egyzser lehet splitelni és ha a kéz splitelve van akkor nem lehet duplázni.
@@ -114,9 +123,15 @@ class Strategy:
         Returns:
             str: A döntés rövidítve (h=hit, s=stand, d=double down, sp=split).
         """
-        if player_hand.is_pair() and not player_hand.is_split_hand: return self._search_move('pair_splitting', player_hand.get_card_values()[0], dealer_card[2])
-        elif player_hand.is_in_ace() and player_hand.is_soft(): return 'h' if self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2]) == 'd' and (player_hand.is_split_hand or len(player_hand.get_cards()) != 2) else self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2])
-        else: return 'h' if self._search_move('hard_hand', player_hand.get_score(), dealer_card[2]) == 'd' and player_hand.is_split_hand or (player_hand.is_split_hand or len(player_hand.get_cards()) != 2) else self._search_move('hard_hand', player_hand.get_score(), dealer_card[2])
+        moves = player_hand.get_moves()
+        if 'sp' in moves: 
+            return self._search_move('pair_splitting', player_hand.get_card_values()[0], dealer_card[2])
+        elif player_hand.is_in_ace() and player_hand.is_soft(): 
+            move = self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2])
+            return 'h' if move == 'd' and 'd' not in moves else move
+        else: 
+            move = self._search_move('hard_hand', player_hand.get_score(), dealer_card[2])
+            return 'h' if move == 'd' and 'd' not in moves else move
 
 class AI(Player):
     def __init__(self, chips: int) -> None:
@@ -143,13 +158,13 @@ class AI(Player):
         self._is_card_counter = True
         self._card_counter = Card_counter(system)
 
-    def _stupid_bet_calculator(self) -> int:
+    def _stupid_bet_calculator(self, min_bet:int, max_bet:int) -> int:
         """Ez az AI nem érti a játékot és teljesen véletlenszerűen választja ki a tét méretét."""
-        pass
+        return randint(min_bet, max_bet)
     
-    def _stupid_strategy(self) -> str:
+    def _stupid_strategy(self, hand:Player_hand) -> str:
         """Ez az AI nem érti a játékot és teljesen véletlenszerűen hoz döntéseket."""
-        pass
+        return choice(hand.get_moves())
         
     def get_bet(self, min_bet:int, max_bet:int) -> int:
         """A játékos tétjének a meghatározását végzi el.
@@ -157,7 +172,7 @@ class AI(Player):
         Returns:
             int: A játékos tétjének a nagysága.
         """
-        return self._card_counter.calculate_bet() if self._is_card_counter else self._stupid_bet_calculator()
+        return self._card_counter.calculate_bet() if self._is_card_counter else self._stupid_bet_calculator(min_bet, max_bet)
 
     def get_move(self, player_hand:Player_hand, dealer_card:tuple) -> str:
         """A játékos döntését adja meg.
@@ -169,7 +184,7 @@ class AI(Player):
         Returns:
             str: A döntés rövidítve (h=hit, s=stand, d=double down, sp=split).
         """
-        return self._strategy.calculate_move(player_hand, dealer_card) if self._is_basic_strategy else self._stupid_strategy()
+        return self._strategy.calculate_move(player_hand, dealer_card) if self._is_basic_strategy else self._stupid_strategy(player_hand)
 
     def view_game_status(self): pass
 
