@@ -298,9 +298,9 @@ class Player:
         Returns:
             int: A tét, amivel a játékos játszik.
         """
-        bet = self.get_bet(min_bet, max_bet)
-        self.get_chips(bet)
-        hand.add_bet(bet)
+        self._basic_bet = self.get_bet(min_bet, max_bet)
+        self.get_chips(self._basic_bet)
+        hand.add_bet(self._basic_bet)
 
     def won_bet(self, hand:Player_hand) -> None:
         self.add_chips(round(hand.get_bet()))
@@ -376,8 +376,7 @@ class Game:
             return self._deck.get_a_card()
 
     def check_hand(self, hand:Player_hand):
-        if hand.is_bust(): self.lost(hand)
-        elif hand.is_normal21(): self.normal_won(hand)
+        if hand.is_bust() or hand.is_normal21(): hand.stand = True
 
     def move(self, hand:Player_hand, move) -> None:
         if self._valid_move(hand.get_moves(), move): raise Exception('Wrong move')
@@ -470,7 +469,7 @@ class Game:
             if self._player.main_hand.is_split_hand: self.move_and_check(self._player.split_hand)      
             self.dealer_move()
             self._check_player_after_dealer_move(self._player.main_hand)
-            if self._player.main_hand.is_split_hand: self._check_player_after_dealer_move(self._player.split_hand)
+            if self._player.main_hand.is_split_hand: self._check_player_after_dealer_move(self._player.split_hand) 
             self.game_over()
             
     def get_player_chips_value(self): return self._player.get_chips_value()
