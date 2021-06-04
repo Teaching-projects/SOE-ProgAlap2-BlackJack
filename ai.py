@@ -1,4 +1,4 @@
-from blackjack import Game, Player_hand, Player
+from blackjack_logic import Game, Player_hand, Player
 from random import randint, choice
 import json
 
