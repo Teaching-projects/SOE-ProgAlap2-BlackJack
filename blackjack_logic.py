@@ -1,6 +1,5 @@
-import json
 from random import shuffle
-
+import json
 
 class Deck:
     """Egy francia kártya paklit definiáló osztály."""
@@ -55,7 +54,6 @@ class Deck:
             bool: Ha nincs már kártya a pakliban, akkor True-val és ha van még, akkor False-al tér vissza.
         """
         return len(self._deck) == 0
-
 
 class Hand:
     """A kézben lévő kártyákat definiálja.
@@ -231,11 +229,10 @@ class Hand:
                 moves.append('sp')
         return moves
 
-
 class Player_hand(Hand):
     """A játékosnak a kezét fogja jelenteni, amihez tét is tartozik, emellett lehet egy második keze is."""
 
-    def __init__(self, bet: int) -> None:
+    def __init__(self, bet: int=0) -> None:
         """
         Args:
             bet (int): A 
@@ -292,7 +289,6 @@ class Player_hand(Hand):
         """Ha a játékos veszít, akkor nem kapja vissza a tétet"""
         self.stand = True
         self._multiplication(0)
-
 
 class Player:
     """A játékos logikai osztálya.
@@ -399,7 +395,6 @@ class Player:
         self.main_hand.is_split_hand = True
         self.split_hand.is_split_hand = True
 
-
 class Dealer:
     """Az osztót definiáló osztály.
     >>> d = Dealer()
@@ -433,28 +428,26 @@ class Dealer:
         """
         return (self.hand.get_score() > 16) or self.hand.is_bust()
 
-
 class Game:
     """A játék menetét definiáló osztály."""
 
-    def __init__(self, min_bet: int, max_bet: int, deck_count: int) -> None:
+    def __init__(self, player:Player, min_bet: int, max_bet: int, deck_count: int) -> None:
         """
         Args:
+            player (Player): A megadott játékos, aki játszani fog.
             min_bet (int): Minimum tét.
             max_bet (int): Maximum tét.
             deck_count (int): A paklik száma.
         """
-        self._deck = Deck(deck_count)
-        self._min_bet = min_bet
-        self._max_bet = max_bet
+        if min_bet > max_bet or min_bet < 1: raise Exception('Invalid minimum bet value')
+        elif player.get_chips_value() < min_bet: raise Exception('The player has few chips')
+        elif deck_count < 1 or deck_count > 8: raise Exception('Invalid decks value')
+        else:
+            self._player = player
+            self._deck = Deck(deck_count)
+            self._min_bet = min_bet
+            self._max_bet = max_bet
 
-    def set_player(self, player: Player) -> None:
-        """Beaállítja a megadott játékost.
-
-        Args:
-            player (Player): A megadott játékos, aki játszani fog.
-        """
-        self._player = player
 
     def _deal_card(self) -> None:
         """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet, ha van még kártya, akkor onnan vesz el."""
@@ -525,7 +518,7 @@ class Game:
             - Csak az osztónak van blackjackje, ekkor a játékos vesztett.
             - Senkinek sincs blackjackje, ekkor folytatódik a játék.
         """
-        self._game_over = False
+        self._is_game_over = False
         self._dealer = Dealer()
         self._player.place_bet(self._min_bet, self._max_bet)
         self._player.main_hand.add_card(self._deal_card())
@@ -534,20 +527,20 @@ class Game:
         self._dealer.hand.add_card(self._deal_card())
         if self._player.main_hand.is_blackjack() and self._dealer.hand.is_blackjack():
             self._player.main_hand.stand = True
-            self.game_over()
+            self._game_over()
         elif self._player.main_hand.is_blackjack() and not self._dealer.hand.is_blackjack():
             self._player.main_hand.blackjack_won()
-            self.game_over()
+            self._game_over()
         elif self._dealer.hand.is_blackjack():
             self._player.main_hand.lost()
-            self.game_over()
+            self._game_over()
 
-    def game_over(self) -> None:
+    def _game_over(self) -> None:
         """A kör vége. Visszakerülnek a játékoshoz a megnyert tétek és a kör nem folytatódik tovább."""
         self._player.won_bet(self._player.main_hand)
         if self._player.main_hand.is_split_hand:
             self._player.won_bet(self._player.split_hand)
-        self._game_over = True
+        self._is_game_over = True
 
     def _is_draw(self, hand: Player_hand) -> bool:
         """Megnéz, hogy a megadott kéz és az osztó keze között az eredmény döntetlen-e.
@@ -598,7 +591,7 @@ class Game:
     def round(self) -> None:
         """Egy kört ír le, ami egy setup-al kezdődik, majd a játékos lépéseivel folyatódik, ami addig tart, míg meg nem áll, ha kettéosztotta a kezét, akkor mindkettővel meg kell állnia, ezután az osztó lépése következik, ami ha befejeződött, akkor a játék állása alapján a játékos zsetonokat kaphat, majd befejezősik a kör."""
         self._setup()
-        while not self._game_over:
+        while not self._is_game_over:
             self.move_and_check(self._player.main_hand)
             if self._player.main_hand.is_split_hand:
                 self.move_and_check(self._player.split_hand)
@@ -606,7 +599,7 @@ class Game:
             self._check_player_after_dealer_move(self._player.main_hand)
             if self._player.main_hand.is_split_hand:
                 self._check_player_after_dealer_move(self._player.split_hand)
-            self.game_over()
+            self._game_over()
 
     def get_player_chips_value(self) -> int:
         """A játékos zsetonjainak az értékét vizsgálja.

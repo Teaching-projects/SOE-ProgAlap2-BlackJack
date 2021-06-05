@@ -29,7 +29,7 @@ class Card_counter:
             system (str): A kiválasztott kártyaszámolási technika neve.
         """
         self._count = 0
-        with open(f'basic_data/{system}.json') as f:
+        with open(f'basic_data/counting_systems/{system}.json') as f:
             self._system = json.load(f)
 
     def reset_count(self) -> None: 
@@ -45,7 +45,7 @@ class Card_counter:
         for count_value in list(self._system.keys()): 
             if card in self._system[count_value]: self._count += float(count_value)
 
-    def calculate_bet(self): return 30
+    def calculate_bet(self): return 1000
 
 class Strategy:
     """
