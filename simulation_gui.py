@@ -1,5 +1,4 @@
-from blackjack_logic import Game
-from ai import AI
+from ai import AI, Game_simulation
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -19,6 +18,8 @@ class Statistics_frame(tk.Frame):
         Args:
             data (dict): A szimuláció adatai.
         """
+        for label in self.grid_slaves():
+            label.grid_forget()
         self._img = tk.PhotoImage(file=data["plot_img"])
         img_widget = tk.Label(self, image=self._img, bd=0)
         text_frame = tk.Frame(self, background='white')
@@ -55,14 +56,14 @@ class Form_frame(tk.Frame):
         tk.Label(self, text="Minimum bet: ").grid(sticky='w', row=3, column=0)
         tk.Spinbox(self, textvariable=self.minimum_bet_var, width=7, from_=100, to=99999, increment=100).grid(pady=self._padding, sticky='w', row=3, column=1)
         
-        self.maximum_bet_var = tk.IntVar(self, value=400)
+        self.maximum_bet_var = tk.IntVar(self, value=3000)
         tk.Label(self, text="Maximum bet: ").grid(sticky='w', row=4, column=0)
         tk.Spinbox(self, textvariable=self.maximum_bet_var, width=7, from_=101, to=100000, increment=100).grid(pady=self._padding, sticky='w', row=4, column=1)
 
-        self.chips_var = tk.IntVar(self, value=500)
+        self.chips_var = tk.IntVar(self, value=5000)
         tk.Label(self, text="Chips: ").grid(sticky='w', row=5, column=0)
-        tk.Label(self, textvariable=self.chips_var, width=5).grid(sticky='e', row=5, column=2)
-        tk.Scale(self, variable=self.chips_var, orient='horizontal', troughcolor='white', showvalue=0, from_=100, to=10000, resolution=100).grid(pady=self._padding, sticky='w', row=5, column=1)
+        tk.Label(self, textvariable=self.chips_var, width=6).grid(sticky='e', row=5, column=2)
+        tk.Scale(self, variable=self.chips_var, orient='horizontal', troughcolor='white', showvalue=0, from_=100, to=100000, resolution=100).grid(pady=self._padding, sticky='w', row=5, column=1)
 
         self.basic_strategy_state = tk.BooleanVar(self, value=True)
         tk.Label(self, text="Basic strategy: ").grid(sticky='w', row=6, column=0)
@@ -90,9 +91,9 @@ class Form_frame(tk.Frame):
         if self.card_counter_state.get():
             self._counting_system_label = tk.Label(self, background='white', text="System: ")
             self._counting_system_label.grid(sticky='w', row=8, column=0)
-            self._counting_system_combobox= ttk.Combobox(self, width=10, state='readonly', textvariable=self.counting_system_var, values=self._get_counting_system_names())
+            self._counting_system_combobox = ttk.Combobox(self, width=16, state='readonly', textvariable=self.counting_system_var, values=self._get_counting_system_names())
             self._counting_system_combobox.current(0)
-            self._counting_system_combobox.grid(pady=self._padding, row=8, column=1)
+            self._counting_system_combobox.grid(pady=self._padding, row=8, column=1, columnspan=2)
         else:
             self._counting_system_label.destroy()
             self._counting_system_combobox.destroy()
@@ -165,12 +166,13 @@ class Simulation_window(tk.Tk):
         else:
             basic_strategy = self._form_frame.basic_strategy_state.get()
             ai = AI(chips)
-            g = Game(ai, min_bet, max_bet, decks)
-            if system_state: ai.set_card_counter(system)
+            g = Game_simulation(ai, min_bet, max_bet, decks)
+            if system_state: ai.set_card_counter(system, decks)
             if basic_strategy: ai.set_basic_strategy()
  
             for i in range(rounds): 
                 g.round()
+                if system_state: ai.view_cards_on_the_table(g.get_cards_on_the_table())
                 history.append(g.get_player_chips_value())
 
             plot_fname = 'save/last_statistics.png'
