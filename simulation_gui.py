@@ -102,7 +102,7 @@ class Simulation_window(tk.Tk):
     """Egy ablakot definiál, ami ha van régebbi szimulációs adat akkor annak a statisztikáját jeleníti meg és, emelett új szimulációra is ad lehetőséget."""
     def __init__(self) -> None:
         super().__init__()
-        self.title('Epic blackjack simulator')
+        self.title('Epic blackjack simulator by Csabi')
         self.configure(background='white', padx=15, pady=15)
         self.resizable(False,False)
         style = ttk.Style()
@@ -121,6 +121,8 @@ class Simulation_window(tk.Tk):
         self._form_frame.grid(row=0, column=1, padx=20)
 
         tk.Button(self._form_frame, text='Simulate game', background='white', command=self._new_simulation).grid(sticky='we', row=9, columnspan=3, padx=20, pady=15)
+
+        self.eval('tk::PlaceWindow . center')
 
     def _plot(self, stat:list, file_name:str) -> None:
         """Grafikon formájában menti el, hogy a szimúláció során a játékosnak a körök után mennyi zsetonja volt.
