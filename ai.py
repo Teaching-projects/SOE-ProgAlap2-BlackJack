@@ -2,6 +2,7 @@ from blackjack_logic import Game, Player_hand, Player
 from random import randint, choice
 import json
 
+
 class Card_counter:
     """
     >>> c = Card_counter('hi-lo', 1)
@@ -48,7 +49,8 @@ class Card_counter:
     >>> c.calculate_bet(100, 120)
     120
     """
-    def __init__(self, system:str, decks:int) -> None:
+
+    def __init__(self, system: str, decks: int) -> None:
         """Betölti a megadott lapszámlálási technikát, majd eltárolja azt.
 
         Args:
@@ -57,27 +59,28 @@ class Card_counter:
         """
         self._decks = decks
         self._reset_count()
-        with open(f'basic_data/counting_systems/{system}.json') as f:
+        with open(f'data/counting_systems/{system}.json') as f:
             self._system = json.load(f)
 
-    def _reset_count(self) -> None: 
+    def _reset_count(self) -> None:
         """Alaphelyzetbe állítja a számlálót."""
         self._count = 0
-        self._remaining_cards = self._decks * 52 
+        self._remaining_cards = self._decks * 52
 
-    def _counting(self, card_value:int) -> None:
+    def _counting(self, card_value: int) -> None:
         """A megadott kártya alapján változatatja a számláló értékét. Ha elfogyott a kártya, akkor ugye újra lesz keverve pakli és ilyenkor nullára állítja a számlálót.
-        
+
         Args:
             card_value (int): Kártya értéke.
         """
-        for count_value in list(self._system.keys()): 
-            if card_value in self._system[count_value]: 
+        for count_value in list(self._system.keys()):
+            if card_value in self._system[count_value]:
                 self._count += float(count_value)
         self._remaining_cards -= 1
-        if self._remaining_cards == 0: self._reset_count()
+        if self._remaining_cards == 0:
+            self._reset_count()
 
-    def running_count(self, cards:list) -> None:
+    def running_count(self, cards: list) -> None:
         """A lapszámolási technika alapján végigmegy a megadott kártyaértékeken.
 
         Args:
@@ -88,7 +91,7 @@ class Card_counter:
 
     def _calculate_decks_remaining(self) -> int:
         """Kiszámolja, hogy hány pakli van még hátra a következő keverésig.
-        
+
         Returns:
             int: A hátralévő paklik száma.
         """
@@ -96,17 +99,18 @@ class Card_counter:
 
     def _calculate_true_count(self) -> int:
         """Kiszámolja a valódi értéket. Ha több paklival játszanak, akkor a számláló értékét el kell osztani a hátralévő paklik számával.
-        
+
         Returns:
             int: A valódi érték.
         """
         decks_remaining = self._calculate_decks_remaining()
-        if decks_remaining == 0: return self._count
+        if decks_remaining == 0:
+            return self._count
         return self._count / decks_remaining
 
-    def calculate_bet(self, min_bet:int, max_bet:int) -> int: 
+    def calculate_bet(self, min_bet: int, max_bet: int) -> int:
         """Kiszámolja az optimális tétet a valódi érték alapján.
-        
+
         Args:
             min_bet (int): Minimum tét.
             max_bet (int): Maximum tét.
@@ -115,9 +119,12 @@ class Card_counter:
             int: Az optimális tét.
         """
         bet = (self._calculate_true_count() - 1) * min_bet
-        if bet < min_bet: return min_bet
-        elif bet > max_bet: return max_bet
+        if bet < min_bet:
+            return min_bet
+        elif bet > max_bet:
+            return max_bet
         return round(bet)
+
 
 class Strategy:
     """
@@ -160,14 +167,15 @@ class Strategy:
     >>> s.calculate_move(h,('♦', 'Q', 10))
     's'
     """
+
     def __init__(self) -> None:
         """Betölti a kiválasztott stratégiát, majd eltárolja azt."""
-        with open(f'basic_data/basic_strategy.json') as f:
+        with open(f'data/basic_strategy.json') as f:
             self._strategy = json.load(f)
-    
-    def _search_move(self, hand_type:str, player:int, dealer:int) -> str:
+
+    def _search_move(self, hand_type: str, player: int, dealer: int) -> str:
         """A stratégiának megfelelő döntést keresi meg, a megadott kéz és kártya értékek alapján.
-        
+
         Args:
             hand_type (str): A kiválasztott kártyaszámolási technika neve.
             player (int): A stratégiának megfelelő érték, ami a játékoshoz tartozik.
@@ -180,14 +188,16 @@ class Strategy:
         column = 0
         strategy = self._strategy[hand_type]
         for index, card in enumerate(strategy['player']):
-            if player == card: row = index
+            if player == card:
+                row = index
         for index, card in enumerate(strategy['dealer']):
-            if dealer == card: column = index
-        return strategy['move'][row][column]        
+            if dealer == card:
+                column = index
+        return strategy['move'][row][column]
 
-    def calculate_move(self, player_hand:Player_hand, dealer_card:tuple) -> str:
+    def calculate_move(self, player_hand: Player_hand, dealer_card: tuple) -> str:
         """A stratégiának megfelelő döntést hozza meg a játékos keze alapján. Figyelembe véve azt, hogy egyzser lehet splitelni és ha a kéz splitelve van akkor nem lehet duplázni.
-        
+
         Args:
             player_hand (Player_hand): A játékos keze.
             dealer_card (int): Az osztó első lapja.
@@ -196,14 +206,17 @@ class Strategy:
             str: A döntés rövidítve (h=hit, s=stand, d=double down, sp=split).
         """
         moves = player_hand.get_moves()
-        if 'sp' in moves: 
+        if 'sp' in moves:
             return self._search_move('pair_splitting', player_hand.get_card_values()[0], dealer_card[2])
-        elif player_hand.is_in_ace() and player_hand.is_soft(): 
-            move = self._search_move('soft_hand', player_hand.get_score()-11, dealer_card[2])
+        elif player_hand.is_in_ace() and player_hand.is_soft():
+            move = self._search_move(
+                'soft_hand', player_hand.get_score()-11, dealer_card[2])
             return 'h' if move == 'd' and 'd' not in moves else move
-        else: 
-            move = self._search_move('hard_hand', player_hand.get_score(), dealer_card[2])
+        else:
+            move = self._search_move(
+                'hard_hand', player_hand.get_score(), dealer_card[2])
             return 'h' if move == 'd' and 'd' not in moves else move
+
 
 class AI(Player):
     def __init__(self, chips: int) -> None:
@@ -218,10 +231,10 @@ class AI(Player):
 
     def set_basic_strategy(self) -> None:
         """Beállítja az alapstratégiát."""
-        self._is_basic_strategy = True 
+        self._is_basic_strategy = True
         self._strategy = Strategy()
 
-    def set_card_counter(self, system:str, decks:int) -> None:
+    def set_card_counter(self, system: str, decks: int) -> None:
         """Beállítja a megadott lapszámolási technikát.
 
         Args:
@@ -231,17 +244,17 @@ class AI(Player):
         self._is_card_counter = True
         self._card_counter = Card_counter(system, decks)
 
-    def _stupid_bet_calculator(self, min_bet:int, max_bet:int) -> int:
+    def _stupid_bet_calculator(self, min_bet: int, max_bet: int) -> int:
         """Ez az AI nem érti a játékot és teljesen véletlenszerűen választja ki a tét méretét."""
         return randint(min_bet, max_bet)
-    
-    def _stupid_strategy(self, hand:Player_hand) -> str:
+
+    def _stupid_strategy(self, hand: Player_hand) -> str:
         """Ez az AI nem érti a játékot és teljesen véletlenszerűen hoz döntéseket."""
         return choice(hand.get_moves())
-        
-    def get_bet(self, min_bet:int, max_bet:int) -> int:
+
+    def get_bet(self, min_bet: int, max_bet: int) -> int:
         """A játékos tétjének a meghatározását végzi el.
-        
+
         Args:
             min_bet (int): Minimum tét.
             max_bet (int): Maximum tét.
@@ -251,9 +264,9 @@ class AI(Player):
         """
         return self._card_counter.calculate_bet(min_bet, max_bet) if self._is_card_counter else self._stupid_bet_calculator(min_bet, max_bet)
 
-    def get_move(self, player_hand:Player_hand, dealer_card:tuple) -> str:
+    def get_move(self, player_hand: Player_hand, dealer_card: tuple) -> str:
         """A játékos döntését adja meg.
-        
+
         Args:
             player_hand (Player_hand): A játékos keze.
             dealer_card (int): Az osztó első lapja.
@@ -263,16 +276,18 @@ class AI(Player):
         """
         return self._strategy.calculate_move(player_hand, dealer_card) if self._is_basic_strategy else self._stupid_strategy(player_hand)
 
-    def view_cards_on_the_table(self, cards:list) -> None:
+    def view_cards_on_the_table(self, cards: list) -> None:
         """Végignézi a kártya értékekeet, azaz megszámolja azokat.
-        
+
         Args:
             cards (list): A kártya értékek listája.
         """
         self._card_counter.running_count(cards)
 
+
 class Game_simulation(Game):
     """A szimuláció szsámára definiált Game osztály. A kártyaszámolást is "támogatja". """
+
     def __init__(self, player: Player, min_bet: int, max_bet: int, deck_count: int) -> None:
         """
         Args:
@@ -285,15 +300,17 @@ class Game_simulation(Game):
 
     def get_cards_on_the_table(self) -> list:
         """Visszaadja az asztalon lévő kártyák értékeit.
-        
+
         Returns:
             list: A kártya értékek listája.
         """
         cards = self._dealer.hand.get_card_values()
         cards.extend(self._player.main_hand.get_card_values())
-        if self._player.main_hand.is_split_hand: cards.extend(self._player.split_hand.get_card_values())
+        if self._player.main_hand.is_split_hand:
+            cards.extend(self._player.split_hand.get_card_values())
         return cards
 
-if __name__ == '__main__': 
+
+if __name__ == '__main__':
     import doctest
     doctest.testmod()

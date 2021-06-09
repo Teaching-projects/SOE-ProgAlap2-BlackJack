@@ -1,8 +1,9 @@
 from random import shuffle
 import json
 
+
 class Deck:
-    """Egy francia kártya paklit definiáló osztály."""
+    """Egy francia kártyapaklit definiáló osztály."""
 
     def __init__(self, deck_count: int) -> None:
         """
@@ -54,6 +55,7 @@ class Deck:
             bool: Ha nincs már kártya a pakliban, akkor True-val és ha van még, akkor False-al tér vissza.
         """
         return len(self._deck) == 0
+
 
 class Hand:
     """A kézben lévő kártyákat definiálja.
@@ -229,10 +231,11 @@ class Hand:
                 moves.append('sp')
         return moves
 
+
 class Player_hand(Hand):
     """A játékosnak a kezét fogja jelenteni, amihez tét is tartozik, emellett lehet egy második keze is."""
 
-    def __init__(self, bet: int=0) -> None:
+    def __init__(self, bet: int = 0) -> None:
         """
         Args:
             bet (int): A 
@@ -289,6 +292,7 @@ class Player_hand(Hand):
         """Ha a játékos veszít, akkor nem kapja vissza a tétet"""
         self.stand = True
         self._multiplication(0)
+
 
 class Player:
     """A játékos logikai osztálya.
@@ -395,6 +399,7 @@ class Player:
         self.main_hand.is_split_hand = True
         self.split_hand.is_split_hand = True
 
+
 class Dealer:
     """Az osztót definiáló osztály.
     >>> d = Dealer()
@@ -428,10 +433,11 @@ class Dealer:
         """
         return (self.hand.get_score() > 16) or self.hand.is_bust()
 
+
 class Game:
     """A játék menetét definiáló osztály."""
 
-    def __init__(self, player:Player, min_bet: int, max_bet: int, deck_count: int) -> None:
+    def __init__(self, player: Player, min_bet: int, max_bet: int, deck_count: int) -> None:
         """
         Args:
             player (Player): A megadott játékos, aki játszani fog.
@@ -439,15 +445,17 @@ class Game:
             max_bet (int): Maximum tét.
             deck_count (int): A paklik száma.
         """
-        if min_bet > max_bet or min_bet < 1: raise Exception('Invalid minimum bet value')
-        elif player.get_chips_value() < min_bet: raise Exception('The player has few chips')
-        elif deck_count < 1 or deck_count > 8: raise Exception('Invalid decks value')
+        if min_bet > max_bet or min_bet < 1:
+            raise Exception('Invalid minimum bet value')
+        elif player.get_chips_value() < min_bet:
+            raise Exception('The player has few chips')
+        elif deck_count < 1 or deck_count > 8:
+            raise Exception('Invalid decks value')
         else:
             self._player = player
             self._deck = Deck(deck_count)
             self._min_bet = min_bet
             self._max_bet = max_bet
-
 
     def _deal_card(self) -> None:
         """Ha a elfogyott a pakli akkor újra keveri a kiment kártyákat és abból vesz egyet, ha van még kártya, akkor onnan vesz el."""
