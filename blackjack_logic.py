@@ -27,7 +27,7 @@ class Deck:
             list: A pakliban lévő kártyák listája.
         """
         deck = []
-        with open('basic_data/cards.json') as f:
+        with open('data/cards.json') as f:
             data = json.load(f)
         for suit in data['suits']:
             for name in data['values'].keys():

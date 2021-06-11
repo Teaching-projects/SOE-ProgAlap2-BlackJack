@@ -26,7 +26,6 @@ class Statistics_frame(tk.Frame):
         img_widget = tk.Label(self, image=self._img, bd=0)
         text_frame = tk.Frame(self, background='white')
         padding = 20
-        img_widget.configure()
         tk.Label(text_frame, text=f'Number of decks: {data["deck_count"]}', background='white').grid(
             padx=padding, row=0, column=0)
         tk.Label(text_frame, text=f'Minimum bet: {data["min_bet"]}', background='white').grid(
@@ -105,7 +104,9 @@ class Form_frame(tk.Frame):
         Returns:
             list: A lapszámolási technikák neveinek a listája.
         """
-        return [os.path.splitext(f)[0] for f in os.listdir('data/counting_systems')]
+        with open(f'data/counting_systems.json') as f:
+            l = [*json.load(f).keys()]
+            return l
 
     def _select_system(self) -> None:
         """Ha be van állítva a lapszámolás, akkor ki lehet választani, hogy melyik technika legyen alkalmazva a szimuláció során."""
@@ -191,7 +192,7 @@ class Simulation_window(tk.Tk):
         system_state = self._form_frame.card_counter_state.get()
         system = self._form_frame.counting_system_var.get()
 
-        if rounds > 100000:
+        if rounds > 100000 or rounds < 1:
             raise Exception('Invalid rounds value')
         else:
             basic_strategy = self._form_frame.basic_strategy_state.get()

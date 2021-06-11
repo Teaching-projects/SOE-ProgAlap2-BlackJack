@@ -5,18 +5,18 @@ import json
 
 class Card_counter:
     """
-    >>> c = Card_counter('hi-lo', 1)
+    >>> c = Card_counter('Hi-Lo', 1)
     >>> c._counting(4)
     >>> c._count
     1.0
-    >>> c = Card_counter('omega_ii', 1)
+    >>> c = Card_counter('Omega II', 1)
     >>> c._counting(10)
     >>> c._count
     -2.0
     >>> c._counting(3)
     >>> c._count
     -1.0
-    >>> c = Card_counter('halves', 3)
+    >>> c = Card_counter('Halves', 3)
     >>> c._counting(2)
     >>> c._count
     0.5
@@ -59,8 +59,8 @@ class Card_counter:
         """
         self._decks = decks
         self._reset_count()
-        with open(f'data/counting_systems/{system}.json') as f:
-            self._system = json.load(f)
+        with open(f'data/counting_systems.json') as f:
+            self._system = json.load(f)[system]
 
     def _reset_count(self) -> None:
         """Alaphelyzetbe állítja a számlálót."""
